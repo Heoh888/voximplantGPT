@@ -1,0 +1,11 @@
+openai
+fastapi
+uvicorn
+gunicorn
+uvicorn[standard]
+beautifulsoup4
+chromadb
+tiktoken
+langgraph
+langchain-openai
+langchain_community
