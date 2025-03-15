@@ -1,21 +1,12 @@
-/**
- * Подключаем модуль автоматического распознавания речи (ASR)
- */
-require(Modules.ASR);
+require(Modules.ASR); // Подключаем модуль автоматического распознавания речи (ASR)
 
-/**
- * Класс для управления событиями
- */
+// 🔹 Класс для управления событиями
 class EventEmitter {
   constructor() {
     this.events = {};
   }
 
-  /**
-   * Подписка на событие
-   * @param {string} event - Название события
-   * @param {Function} listener - Функция-обработчик
-   */
+  // Подписка на событие
   on(event, listener) {
     if (!this.events[event]) {
       this.events[event] = [];
@@ -23,11 +14,7 @@ class EventEmitter {
     this.events[event].push(listener);
   }
 
-  /**
-   * Вызов события
-   * @param {string} event - Название события
-   * @param {...any} args - Аргументы обработчика
-   */
+  // Вызов события
   emit(event, ...args) {
     if (this.events[event]) {
       this.events[event].forEach(listener => {
@@ -36,22 +23,14 @@ class EventEmitter {
     }
   }
 
-  /**
-   * Отписка от события
-   * @param {string} event - Название события
-   * @param {Function} listener - Функция-обработчик
-   */
+  // Отписка от события
   off(event, listener) {
     if (this.events[event]) {
-      this.events[event] = this.events[event].filter(l => l !== listener);
+      this.events[event].filter(l => l !== listener);
     }
   }
 
-  /**
-   * Подписка на событие с однократным срабатыванием
-   * @param {string} event - Название события
-   * @param {Function} listener - Функция-обработчик
-   */
+  // Подписка на событие с однократным срабатыванием
   once(event, listener) {
     const onceListener = (...args) => {
       listener(...args);
@@ -61,156 +40,187 @@ class EventEmitter {
   }
 }
 
-/**
- * Класс управления очередью воспроизведения голосовых сообщений
- */
 class Player extends EventEmitter {
-  constructor() {
-    super();
-    this.queue = [];  // Очередь текстовых чанков
-    this.status = false; // Флаг состояния плеера (играет/не играет)
-  }
-
-  /**
-   * Запуск воспроизведения
-   */
-  play() {
-    if (!this.status) {
-      this.status = true;
-      this.emit('play');
+    constructor() {
+        super();
+        this.queue = [];  // Массив текстовых чанков
+        this.status = false; // Состояние плеера
     }
-  }
 
-  /**
-   * Остановка воспроизведения
-   */
-  stop() {
-    if (this.status) {
-      this.status = false;
-      this.emit('stop');
+    play() {
+        if (!this.status) {
+            this.status = true;
+            this.emit('play');
+        }
     }
-  }
 
-  /**
-   * Добавление текста в очередь
-   * @param {string} chank - Текстовый чанк
-   */
-  add(chank) {
-    this.queue.push(chank);
-    this.emit('added', chank);
-    Logger.write("🎵 Добавлен новый чанк в очередь: " + chank);
-  }
-
-  /**
-   * Удаление первого элемента из очереди
-   * @returns {string|null} - Возвращает удаленный чанк или null
-   */
-  remove() {
-    const chank = this.queue.shift();
-    if (chank) {
-      this.emit('removed', chank);
-      Logger.write("🗑 Удалён чанк из очереди: " + chank);
+    stop() {
+        if (this.status) {
+            this.status = false;
+            this.emit('stop');
+        }
     }
-    return chank;
-  }
 
-  /**
-   * Очистка очереди
-   */
-  clear() {
-    if (this.queue.length > 0) {
-      this.queue = [];
-      this.emit('cleared');
-      Logger.write("🚮 Очередь полностью очищена");
+    // Добавляем новый плеер в очередь
+    add(chank) {
+        this.queue.push(chank);
+        this.emit('added', chank); // Логируем добавление
+        Logger.write("🎵 Добавлен новый чанк в очередь: " + chank);
     }
-  }
 
-  /**
-   * Переключение состояния (воспроизведение/остановка)
-   */
-  toggle() {
-    this.status ? this.stop() : this.play();
-  }
+    // Удаляем первый элемент из очереди
+    remove() {
+        const chank = this.queue.shift();
+        if (chank) {
+            this.emit('removed', chank);
+            Logger.write("🗑 Удалён чанк из очереди: " + chank);
+        }
+        return chank;
+    }
 
-  /**
-   * Проверка состояния плеера
-   * @returns {boolean}
-   */
-  get isPlaying() {
-    return this.status;
-  }
+    // Полностью очищаем очередь
+    clear() {
+        if (this.queue.length > 0) {
+            this.queue = [];
+            this.emit('cleared');
+            Logger.write("🚮 Очередь полностью очищена");
+        }
+    }
 
-  /**
-   * Получение длины очереди
-   * @returns {number}
-   */
-  get length() {
-    return this.queue.length;
-  }
+    toggle() {
+        this.status ? this.stop() : this.play();
+    }
+
+    get isPlaying() {
+        return this.status;
+    }
+
+    // Возвращаем длину очереди
+    get length() {
+        return this.queue.length;
+    }
 }
 
-// --- Основные переменные ---
+// 🔹 Глобальные переменные
 var call, player, asr;
 const defaultVoice = VoiceList.TBank.ru_RU_Alyona;
 const wsUrl = 'wss://voximplant.onrender.com/ws';
-var wsReady = false; // Флаг состояния WebSocket
+
+var wsReady = false; // Флаг готовности WebSocket
 const voicePlayer = new Player();
 
-// Подписка на событие удаления из очереди
+// Подписка на удаление из очереди (воспроизведение следующего чанка)
 voicePlayer.on('removed', (text) => {
-  playNextChunk(text);
+    playNextChunk(text); // Запускаем следующий чанк
 });
 
-/**
- * Воспроизведение следующего текстового чанка
- * @param {string} text - Текстовый чанк
- */
+// 🔹 Функция воспроизведения чанка
 async function playNextChunk(text) {
-  Logger.write("▶️ Начинаем воспроизведение: " + text);
+    Logger.write("▶️ Начинаем воспроизведение: " + text);
 
-  player = VoxEngine.createTTSPlayer(text, { language: defaultVoice });
-  player.sendMediaTo(call);
+    player = VoxEngine.createTTSPlayer(text, {
+        language: defaultVoice
+    });
+    player.sendMediaTo(call);
 
-  player.addEventListener(PlayerEvents.PlaybackFinished, () => {
-    Logger.write("🔚 Воспроизведение завершено: " + text);
-    voicePlayer.remove();
-  });
+    // Останавливает плайер
+    voicePlayer.on('stop', () => {
+        player.stop();
+    });
+
+    // Событие завершения воспроизведения
+    player.addEventListener(PlayerEvents.PlaybackFinished, () => {
+        Logger.write("🔚 Воспроизведение завершено: " + text);
+        voicePlayer.remove(); // Удаляем воспроизведённый чанк
+    });
 }
 
-/**
- * Обработчик входящего вызова
- */
+// 🔹 Обработчик входящего вызова
 VoxEngine.addEventListener(AppEvents.CallAlerting, (e) => {
-  call = e.call;
-  Logger.write("📞 Входящий вызов: " + call.id);
-  asr = VoxEngine.createASR({ profile: ASRProfileList.TBank.ru_RU, singleUtterance: true });
+    call = e.call;
+    Logger.write("📞 Входящий вызов: " + call.id);
 
-  const socket = VoxEngine.createWebSocket(wsUrl);
-  socket.addEventListener(WebSocketEvents.OPEN, () => wsReady = true);
-  socket.addEventListener(WebSocketEvents.MESSAGE, (event) => {
-    if (event.text) {
-      voicePlayer.add(event.text);
-      if (!voicePlayer.isPlaying) {
-        voicePlayer.play();
-        voicePlayer.remove();
-      }
-    }
-  });
+    // Создание ASR для распознавания речи
+    asr = VoxEngine.createASR({
+        profile: ASRProfileList.TBank.ru_RU,
+        singleUtterance: true // Останавливается после первого распознанного предложения
+    });
 
-  asr.addEventListener(ASREvents.Result, (e) => {
-    if (e.text && wsReady) {
-      socket.send(e.text);
-      voicePlayer.stop();
-      voicePlayer.clear();
-    }
-  });
+    // Подключение к WebSocket-серверу
+    const socket = VoxEngine.createWebSocket(wsUrl);
+    Logger.write("🌐 Подключение к WebSocket...");
 
-  call.addEventListener(CallEvents.Connected, () => {
-    player = VoxEngine.createTTSPlayer('Здравствуйте, Вы позвонили в компанию ai-one, чем я могу помочь?', { language: defaultVoice });
-    player.sendMediaTo(call);
-    player.addEventListener(PlayerEvents.PlaybackMarkerReached, () => call.sendMediaTo(asr));
-  });
+    // WebSocket открыт
+    socket.addEventListener(WebSocketEvents.OPEN, () => {
+        wsReady = true;
+        Logger.write("✅ WebSocket подключён!");
+    });
 
-  call.addEventListener(CallEvents.Disconnected, () => VoxEngine.terminate());
-  call.answer();
+    // WebSocket получает сообщение
+    socket.addEventListener(WebSocketEvents.MESSAGE, (event) => {
+        Logger.write("📩 Получено сообщение от WebSocket: " + event.text);
+        if (event.text) {
+            voicePlayer.add(event.text); // Добавляем текст в очередь
+
+            // Если уже воспроизводится текст — пропускаем новый чанк
+            if (!voicePlayer.isPlaying) {
+                voicePlayer.play();
+                voicePlayer.remove();
+            }
+        }
+    });
+
+    // WebSocket ошибка
+    socket.addEventListener(WebSocketEvents.ERROR, (event) => {
+        Logger.write("❌ WebSocket ошибка: " + JSON.stringify(event));
+    });
+
+    // WebSocket закрыт
+    socket.addEventListener(WebSocketEvents.CLOSE, () => {
+        wsReady = false;
+        Logger.write("🔴 WebSocket соединение закрыто.");
+    });
+
+    // Обработчик ASR-результатов (т.е. преобразования речи в текст)
+    asr.addEventListener(ASREvents.Result, (e) => {
+        Logger.write("🎤 ASR распознал: " + e.text);
+
+        if (e.text) {
+            if (wsReady) {
+                socket.send(e.text);
+                voicePlayer.stop();
+                voicePlayer.clear(); // Очищаем очередь перед отправкой нового запроса
+                Logger.write("📤 Отправлено в WebSocket: " + e.text);
+            } else {
+                Logger.write("⚠️ WebSocket ещё не готов, сообщение не отправлено.");
+            }
+        }
+    });
+
+    // 🔹 Голосовое приветствие при подключении вызова
+    call.addEventListener(CallEvents.Connected, () => {
+        Logger.write("✅ Вызов подключен.");
+        player = VoxEngine.createTTSPlayer('Здраствуйте, Вы позвонили в компанию ai-one, чем я могу помочь?', {
+            language: defaultVoice
+        });
+        player.sendMediaTo(call);
+
+        // Устанавливаем метку перед отправкой в ASR
+        player.addMarker(-300);
+
+        // При достижении маркера отправляем голос в ASR
+        player.addEventListener(PlayerEvents.PlaybackMarkerReached, () => {
+            Logger.write("🎙 Отправка аудио в ASR...");
+            call.sendMediaTo(asr);
+        });
+    });
+
+    // 🔹 Завершение вызова
+    call.addEventListener(CallEvents.Disconnected, () => {
+        Logger.write("🔚 Вызов завершён.");
+        VoxEngine.terminate(); // Завершаем обработку
+    });
+
+    // Отвечаем на входящий вызов
+    call.answer();
 });
