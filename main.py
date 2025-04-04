@@ -1,7 +1,7 @@
 import asyncio
 import re
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from Agent import agent_start
 
 app = FastAPI()
@@ -37,13 +37,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
             async for value in agent_start(messages):
                 full_text = full_text + value
-                chunk = value
-                if chunk:
+                if chunk := value:
                     buffer += chunk  # Накопление текста в буфер
 
-                # Собираем фразы с использованием регулярного выражения
-                sentences = SENTENCE_PATTERN.findall(buffer)
-                if sentences:
+                if sentences := SENTENCE_PATTERN.findall(buffer):
                     for sentence in sentences:
                         await websocket.send_text(sentence.strip())  # Отправляем фразу
                         await asyncio.sleep(0.01)

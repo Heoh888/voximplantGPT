@@ -125,6 +125,5 @@ async def agent_start(input):
     Запуск агента для обработки входящих сообщений.
     """
     async for msg, metadata in graph.astream(input, stream_mode="messages"):
-        if msg.content and not isinstance(msg, HumanMessage):
-            if isinstance(msg, AIMessage):
-                yield (msg.content)
+        if msg.content and not isinstance(msg, HumanMessage) and isinstance(msg, AIMessage):
+            yield (msg.content)
