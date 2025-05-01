@@ -58,7 +58,7 @@ def scrape_text(url: str):
         return f"Failed to retrieve the webpage: {error}"
 
 # Получение информации о компании
-target_url = "https://www.langchain.com"
+target_url = "https://xn--80aa2aprbbg3bd2dub.xn--p1ai/deti/drugoyedetstvo/"
 about_company = scrape_text(target_url)
 
 # Создание векторного представления текста
