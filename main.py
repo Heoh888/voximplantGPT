@@ -1,8 +1,10 @@
 import asyncio
 import re
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from Agent import agent_start
+from typing import List, Dict
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -29,40 +31,46 @@ messages = {
     ]
 }
 
-# @app.websocket("/ws")
-# async def websocket_endpoint(websocket: WebSocket):
-#     """
-#     Веб-сокет обработчик, обрабатывающий соединение с клиентом.
-#     Получает текстовые сообщения, передает их агенту и отправляет клиенту сформированные фразы.
-#     """
-#     await websocket.accept()
-#     buffer = ""  # Буфер для накопления текста
+class MessageRequest(BaseModel):
+    message: str
 
-#     try:
-#         while True:
-#             data = await websocket.receive_text()  # Ждем сообщение от клиента
-#             messages["messages"].append(HumanMessage(data))
-#             full_text = ""
+class MessageResponse(BaseModel):
+    response: str
 
-#             async for value in agent_start(messages):
-#                 full_text = full_text + value
-#                 if chunk := value:
-#                     buffer += chunk  # Накопление текста в буфер
+@app.websocket("/streem")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    Веб-сокет обработчик, обрабатывающий соединение с клиентом.
+    Получает текстовые сообщения, передает их агенту и отправляет клиенту сформированные фразы.
+    """
+    await websocket.accept()
+    buffer = ""  # Буфер для накопления текста
 
-#                 if sentences := SENTENCE_PATTERN.findall(buffer):
-#                     for sentence in sentences:
-#                         await websocket.send_text(sentence.strip())  # Отправляем фразу
-#                         await asyncio.sleep(0.01)
-#                         buffer = buffer[len(sentence):]  # Очищаем буфер от отправленной фразы
+    try:
+        while True:
+            data = await websocket.receive_text()  # Ждем сообщение от клиента
+            messages["messages"].append(HumanMessage(data))
+            full_text = ""
 
-#             messages["messages"].append(AIMessage(full_text))  # Добавляем в историю сообщений
-#     except WebSocketDisconnect as e:
-#         print(f"WebSocket отключен (код: {e.code})")
-#         messages["messages"] = messages["messages"][:1]  # Сбрасываем историю диалога
+            async for value in agent_start(messages):
+                full_text = full_text + value
+                if chunk := value:
+                    buffer += chunk  # Накопление текста в буфер
+
+                if sentences := SENTENCE_PATTERN.findall(buffer):
+                    for sentence in sentences:
+                        await websocket.send_text(sentence.strip())  # Отправляем фразу
+                        await asyncio.sleep(0.01)
+                        buffer = buffer[len(sentence):]  # Очищаем буфер от отправленной фразы
+
+            messages["messages"].append(AIMessage(full_text))  # Добавляем в историю сообщений
+    except WebSocketDisconnect as e:
+        print(f"WebSocket отключен (код: {e.code})")
+        messages["messages"] = messages["messages"][:1]  # Сбрасываем историю диалога
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint_ws(websocket: WebSocket):
     """
     Веб-сокет обработчик, обрабатывающий соединение с клиентом.
     Получает текстовые сообщения, передает их агенту и отправляет клиенту полный ответ.
@@ -84,3 +92,23 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect as e:
         print(f"WebSocket отключен (код: {e.code})")
         messages["messages"] = messages["messages"][:1]  # Сбрасываем историю диалога
+
+@app.post("/chat", response_model=MessageResponse)
+async def chat(request: MessageRequest):
+    messages["messages"].append(HumanMessage(request.message))
+    full_text = ""
+
+    async for value in agent_start(messages):
+        full_text += value
+
+    messages["messages"].append(AIMessage(full_text))
+    return MessageResponse(response=full_text.strip())
+
+@app.get("/history")
+async def get_history() -> List[Dict]:
+    return [{"role": msg.type, "content": msg.content} for msg in messages["messages"]]
+
+@app.delete("/history")
+async def clear_history():
+    messages["messages"] = messages["messages"][:1]
+    return {"status": "success"}
