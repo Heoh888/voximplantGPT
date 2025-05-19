@@ -7,7 +7,7 @@ from Agent import agent_start
 app = FastAPI()
 
 # Регулярное выражение для разделения текста на фразы по символам !, . , ? и запятые
-SENTENCE_PATTERN = re.compile(r'[^!.,?]*[!.,?]')
+SENTENCE_PATTERN = re.compile(r'[^!.?]*[!.?]')
 
 # История сообщений, содержащая системное приветственное сообщение
 messages = {
