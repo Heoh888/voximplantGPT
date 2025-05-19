@@ -73,7 +73,7 @@ about_company_tool = create_retriever_tool(
     "Отвечай на вопросы о компании и ее продуктах."
 )
 
-tools = [about_company_tool]
+tools = []
 openai = ChatOpenAI(model="gpt-4o-mini")
 model = openai.bind_tools(tools)
 
