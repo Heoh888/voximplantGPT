@@ -103,3 +103,5 @@ async def get_history() -> List[Dict]:
 async def clear_history():
     messages["messages"] = messages["messages"][:1]
     return {"status": "success"}
+
+# end code
