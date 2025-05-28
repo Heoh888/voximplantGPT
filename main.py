@@ -28,7 +28,7 @@ class MessageRequest(BaseModel):
 class MessageResponse(BaseModel):
     response: str
 
-@app.websocket("/streem")
+@app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """
     Веб-сокет обработчик, обрабатывающий соединение с клиентом.
@@ -58,50 +58,3 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect as e:
         print(f"WebSocket отключен (код: {e.code})")
         messages["messages"] = messages["messages"][:1]  # Сбрасываем историю диалога
-
-
-@app.websocket("/ws")
-async def websocket_endpoint_ws(websocket: WebSocket):
-    """
-    Веб-сокет обработчик, обрабатывающий соединение с клиентом.
-    Получает текстовые сообщения, передает их агенту и отправляет клиенту полный ответ.
-    """
-    await websocket.accept()
-
-    try:
-        while True:
-            data = await websocket.receive_text()  # Ждем сообщение от клиента
-            messages["messages"].append(HumanMessage(data))
-            full_text = ""
-
-            async for value in agent_start(messages):
-                full_text += value  # Просто накапливаем весь текст
-
-            await websocket.send_text(full_text.strip())  # Отправляем весь текст одним сообщением
-            messages["messages"].append(AIMessage(full_text))  # Добавляем в историю сообщений
-
-    except WebSocketDisconnect as e:
-        print(f"WebSocket отключен (код: {e.code})")
-        messages["messages"] = messages["messages"][:1]  # Сбрасываем историю диалога
-
-@app.post("/chat", response_model=MessageResponse)
-async def chat(request: MessageRequest):
-    messages["messages"].append(HumanMessage(request.message))
-    full_text = ""
-
-    async for value in agent_start(messages):
-        full_text += value
-
-    messages["messages"].append(AIMessage(full_text))
-    return MessageResponse(response=full_text.strip())
-
-@app.get("/history")
-async def get_history() -> List[Dict]:
-    return [{"role": msg.type, "content": msg.content} for msg in messages["messages"]]
-
-@app.delete("/history")
-async def clear_history():
-    messages["messages"] = messages["messages"][:1]
-    return {"status": "success"}
-
-# end code
