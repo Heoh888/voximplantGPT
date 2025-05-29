@@ -35,31 +35,36 @@ os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_PROJECT"] = "ai-one"
 
-# def scrape_text(urls: Union[str, List[str]]):
-#     """
-#     Функция для скрапинга текста с веб-страниц.
-#     :param urls: Ссылка или список ссылок на веб-страницы.
-#     :return: Список документов с разбитым на части текстом или сообщение об ошибке.
-#     """
-#     if isinstance(urls, str):
-#         urls = [urls]
+def scrape_text(urls: Union[str, List[str]]):
+    """
+    Функция для скрапинга текста с веб-страниц.
+    :param urls: Ссылка или список ссылок на веб-страницы.
+    :return: Список документов с разбитым на части текстом или сообщение об ошибке.
+    """
+    # if isinstance(urls, str):
+    #     urls = [urls]
 
-#     all_documents = []
-#     for url in urls:
-#         try:
-#             response = requests.get(url)
-#             if response.status_code == 200:
-#                 soup = BeautifulSoup(response.text, 'html.parser')
-#                 page_text = soup.get_text(separator=" ", strip=True)
-#                 splitter = CharacterTextSplitter(separator=" ", chunk_size=1000, chunk_overlap=100)
-#                 chunks = [Document(page_content=chunk, metadata={'source': url}) for chunk in splitter.split_text(page_text)]
-#                 all_documents.extend(chunks)
-#             else:
-#                 print(f"Failed to retrieve the webpage {url}. Status code: {response.status_code}")
-#         except Exception as error:
-#             print(f"Failed to retrieve the webpage {url}: {error}")
+    # all_documents = []
+    # for url in urls:
+    #     try:
+    #         response = requests.get(url)
+    #         if response.status_code == 200:
+    #             soup = BeautifulSoup(response.text, 'html.parser')
+    #             page_text = soup.get_text(separator=" ", strip=True)
+    #             splitter = CharacterTextSplitter(separator=" ", chunk_size=1000, chunk_overlap=100)
+    #             chunks = [Document(page_content=chunk, metadata={'source': url}) for chunk in splitter.split_text(page_text)]
+    #             all_documents.extend(chunks)
+    #         else:
+    #             print(f"Failed to retrieve the webpage {url}. Status code: {response.status_code}")
+    #     except Exception as error:
+    #         print(f"Failed to retrieve the webpage {url}: {error}")
+    # Открытие и чтение файла
+    with open('gaz.txt', 'r', encoding='utf-8') as file:
+        content = file.read()
+    splitter = CharacterTextSplitter(separator=" ", chunk_size=800, chunk_overlap=100)
+    chunks = [Document(page_content=chunk, metadata={'source': url}) for chunk in splitter.split_text(content)]
 
-#     return all_documents
+    return all_documents
 
 # # Получение информации о компаниях
 # target_urls = [
@@ -67,11 +72,7 @@ os.environ["LANGCHAIN_PROJECT"] = "ai-one"
 #     "https://www.openai.com",
 #     "https://www.anthropic.com"
 # ]
-# about_companies = scrape_text(target_urls)
-
-# Открытие и чтение файла
-with open('gaz.txt', 'r', encoding='utf-8') as file:
-    content = file.read()
+about_companies = scrape_text(target_urls)
 
 # Создание векторного представления текста
 embeddings = OpenAIEmbeddings()
