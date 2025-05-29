@@ -35,7 +35,7 @@ os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_PROJECT"] = "ai-one"
 
-def scrape_text(urls: Union[str, List[str]]):
+def scrape_text():
     """
     Функция для скрапинга текста с веб-страниц.
     :param urls: Ссылка или список ссылок на веб-страницы.
@@ -62,9 +62,7 @@ def scrape_text(urls: Union[str, List[str]]):
     with open('gaz.txt', 'r', encoding='utf-8') as file:
         content = file.read()
     splitter = CharacterTextSplitter(separator=" ", chunk_size=800, chunk_overlap=100)
-    chunks = [Document(page_content=chunk, metadata={'source': url}) for chunk in splitter.split_text(content)]
-
-    return all_documents
+    return [Document(page_content=chunk, metadata={'source': "url"}) for chunk in splitter.split_text(content)]
 
 # # Получение информации о компаниях
 # target_urls = [
@@ -72,11 +70,11 @@ def scrape_text(urls: Union[str, List[str]]):
 #     "https://www.openai.com",
 #     "https://www.anthropic.com"
 # ]
-about_companies = scrape_text(target_urls)
+about_companies = scrape_text()
 
 # Создание векторного представления текста
 embeddings = OpenAIEmbeddings()
-vectorstore_about_company = Chroma.from_documents(documents=content, embedding=embeddings)
+vectorstore_about_company = Chroma.from_documents(documents=about_companies, embedding=embeddings)
 retriever_about_company = vectorstore_about_company.as_retriever()
 
 # Создание инструмента поиска по информации о компании
